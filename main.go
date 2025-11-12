@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/adfer-dev/analock-api/api"
@@ -22,11 +23,11 @@ import (
 
 //	@BasePath					/api/v1
 //	@schemes					http https
-//	@securityDefinitions.apiKey	Bearer Token
+//	@securityDefinitions.apikey	BearerAuth
 //	@in							header
 //	@name						Authorization
-
-var logger *utils.CustomLogger = utils.GetCustomLogger()
+//	@description				Type "Bearer" followed by a space and JWT token.
+//	@security					[{ "BearerAuth": [] }]
 
 func main() {
 	err := godotenv.Load()
@@ -37,6 +38,6 @@ func main() {
 
 	server := api.APIServer{Port: 3000}
 
-	logger.InfoLogger.Printf("Server listening at port %d...\n", server.Port)
-	logger.ErrorLogger.Println(server.Run().Error())
+	utils.GetCustomLogger().Info(fmt.Sprintf("Server listening at port %d...\n", server.Port))
+	utils.GetCustomLogger().Error(server.Run().Error())
 }

@@ -22,7 +22,7 @@ func InitDiaryEntryRoutes(router *mux.Router) {
 
 // @Summary		Get user diary entries
 // @Description	Get all diary entries for a user, optionally filtered by date range
-// @Tags			diary entries
+// @Tags			diary
 // @Accept			json
 // @Produce		json
 // @Param			id			path		int	true	"User ID"
@@ -40,7 +40,11 @@ func handleGetUserEntries(res http.ResponseWriter, req *http.Request) error {
 	endDateString := req.URL.Query().Get(constants.EndDateQueryParam)
 
 	if len(startDateString) == 0 || len(endDateString) == 0 {
-		userDiaryEntries, err := diaryEntryService.GetUserEntries(uint(userId))
+		userDiaryEntries, err := services.GetCacheServiceInstance().CacheResource(
+			func() (interface{}, error) { return diaryEntryService.GetUserEntries(uint(userId)) },
+			constants.DiaryEntriesCacheResource,
+			utils.BuildUserCacheKey(uint(userId)),
+		)
 
 		if err != nil {
 			return utils.WriteJSON(res, 500, err.Error())
@@ -87,7 +91,23 @@ func handleCreateDiaryEntry(res http.ResponseWriter, req *http.Request) error {
 		return utils.WriteJSON(res, 400, validationErrs)
 	}
 
-	savedEntry, saveEntryErr := diaryEntryService.SaveDiaryEntry(&entryBody)
+	tokenClaims, claimsErr := utils.GetTokenClaimsFromRequest(req)
+
+	if claimsErr != nil {
+		utils.GetCustomLogger().Errorf(
+			"Error getting claims on create game registration: %s",
+			claimsErr.Error(),
+		)
+		return utils.WriteJSON(res, 500, constants.ErrorGeneric)
+	}
+
+	userId := uint(tokenClaims["sub"].(float64))
+
+	savedEntry, saveEntryErr := diaryEntryService.SaveDiaryEntry(&entryBody, userId)
+	services.GetCacheServiceInstance().EvictResourceItem(
+		constants.DiaryEntriesCacheResource,
+		utils.BuildUserCacheKey(userId),
+	)
 
 	if saveEntryErr != nil {
 		return utils.WriteJSON(res, 500, saveEntryErr.Error())
@@ -119,6 +139,11 @@ func handleUpdateDiaryEntry(res http.ResponseWriter, req *http.Request) error {
 	}
 
 	updatedEntry, updateEntryErr := diaryEntryService.UpdateDiaryEntry(uint(entryId), &updateEntryBody)
+
+	services.GetCacheServiceInstance().EvictResourceItem(
+		constants.DiaryEntriesCacheResource,
+		utils.BuildUserCacheKey(updatedEntry.Registration.UserRefer),
+	)
 
 	if updateEntryErr != nil {
 		return utils.WriteJSON(res, 500, updateEntryErr.Error())

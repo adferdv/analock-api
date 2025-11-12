@@ -343,7 +343,7 @@ func TestRefreshToken_Valid(t *testing.T) {
 	mockTokenManager := &mockTokenManager{
 		ValidateTokenFunc: func(tokenString string) error { return nil },
 		GetClaimsFunc: func(tokenString string) (jwt.MapClaims, error) {
-			return jwt.MapClaims{"email": "exists@example.com"}, nil
+			return jwt.MapClaims{"sub": float64(1)}, nil
 		},
 	}
 	mockUserService := &mockUserService{
@@ -387,20 +387,21 @@ func TestRefreshToken_InvalidToken(t *testing.T) {
 
 func TestRefreshToken_UserNotFound(t *testing.T) {
 	mockAppTokenMgr := &mockTokenManager{
-		ValidateTokenFunc: func(tokenString string) error { return nil }, // Token itself is valid
+		ValidateTokenFunc: func(tokenString string) error { return nil },
 		GetClaimsFunc: func(tokenString string) (jwt.MapClaims, error) {
-			return jwt.MapClaims{"email": "unknown@example.com"}, nil // Email from claims
+			return jwt.MapClaims{"sub": float64(1)}, nil
 		},
 	}
 	mockUserSvc := &mockUserService{
-		GetUserByEmailFunc: func(email string) (*models.User, error) {
-			if email == "unknown@example.com" {
+		GetUserByIdFunc: func(userId uint) (*models.User, error) {
+			if userId == 1 {
 				return nil, errors.New("user not found for refresh test")
 			}
 			return nil, errors.New("unexpected email in GetUserByEmail mock")
 		},
 	}
-	authService := NewAuthService(nil, mockAppTokenMgr, mockUserSvc, nil, nil)
+	mockTokenService := &mockTokenService{}
+	authService := NewAuthService(nil, mockAppTokenMgr, mockUserSvc, mockTokenService, nil)
 
 	req := RefreshTokenRequest{
 		RefreshToken: "valid_refresh_token_unknown_user",

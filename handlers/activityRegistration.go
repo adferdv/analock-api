@@ -24,12 +24,12 @@ func InitActivityRegistrationRoutes(router *mux.Router) {
 
 // @Summary		Get user book activity registrations
 // @Description	Get all book activity registrations for a user, optionally filtered by date range
-// @Tags			activity registrations
+// @Tags			activities
 // @Accept			json
 // @Produce		json
 // @Param			id			path		int	true	"User ID"
-// @Param			startDate	query		int	false	"Start date timestamp"
-// @Param			endDate		query		int	false	"End date timestamp"
+// @Param			start_date	query		int	false	"Start date timestamp"
+// @Param			end_date		query		int	false	"End date timestamp"
 // @Success		200			{array}		models.BookActivityRegistration
 // @Failure		400			{object}	models.HttpError
 // @Failure		500			{object}	models.HttpError
@@ -41,7 +41,9 @@ func handleGetUserBookActivityRegistrations(res http.ResponseWriter, req *http.R
 	endDateString := req.URL.Query().Get(constants.EndDateQueryParam)
 
 	if len(startDateString) == 0 || len(endDateString) == 0 {
-		userBookRegistrations, err := bookRegistrationService.GetUserBookActivityRegistrations(uint(userId))
+		userBookRegistrations, err := services.GetCacheServiceInstance().CacheResource(func() (interface{}, error) {
+			return bookRegistrationService.GetUserBookActivityRegistrations(uint(userId))
+		}, constants.BookActivityRegistrationsCacheResource, utils.BuildUserCacheKey(uint(userId)))
 
 		if err != nil {
 			return utils.WriteJSON(res, 500, err.Error())
@@ -62,8 +64,13 @@ func handleGetUserBookActivityRegistrations(res http.ResponseWriter, req *http.R
 		return utils.WriteJSON(res, 400, models.HttpError{Status: http.StatusBadRequest, Description: fmt.Sprintf(constants.QueryParamError, constants.EndDateQueryParam)})
 	}
 
-	userRegistrations, err := bookRegistrationService.GetUserBookActivityRegistrationsTimeRange(uint(userId), int64(startDate), int64(endDate))
-
+	userRegistrations, err := services.GetCacheServiceInstance().CacheResource(
+		func() (interface{}, error) {
+			return bookRegistrationService.GetUserBookActivityRegistrationsTimeRange(uint(userId), int64(startDate), int64(endDate))
+		},
+		constants.BookActivityRegistrationsCacheResource,
+		utils.BuildUserDateRangeCacheKey(uint(userId), startDate, endDate),
+	)
 	if err != nil {
 		return utils.WriteJSON(res, 400, models.HttpError{Status: http.StatusBadRequest, Description: err.Error()})
 	}
@@ -77,8 +84,8 @@ func handleGetUserBookActivityRegistrations(res http.ResponseWriter, req *http.R
 // @Accept			json
 // @Produce		json
 // @Param			id			path		int	true	"User ID"
-// @Param			startDate	query		int	false	"Start date timestamp"
-// @Param			endDate		query		int	false	"End date timestamp"
+// @Param			start_date	query		int	false	"Start date timestamp"
+// @Param			end_date		query		int	false	"End date timestamp"
 // @Success		200			{array}		models.GameActivityRegistration
 // @Failure		400			{object}	models.HttpError
 // @Failure		500			{object}	models.HttpError
@@ -90,7 +97,9 @@ func handleGetUserGameActivityRegistrations(res http.ResponseWriter, req *http.R
 	endDateString := req.URL.Query().Get(constants.EndDateQueryParam)
 
 	if len(startDateString) == 0 || len(endDateString) == 0 {
-		userGameRegistrations, err := gameRegistrationService.GetUserGameActivityRegistrations(uint(userId))
+		userGameRegistrations, err := services.GetCacheServiceInstance().CacheResource(func() (interface{}, error) {
+			return gameRegistrationService.GetUserGameActivityRegistrations(uint(userId))
+		}, constants.GameActivityRegistrationsCacheResource, utils.BuildUserCacheKey(uint(userId)))
 
 		if err != nil {
 			return utils.WriteJSON(res, 500, err.Error())
@@ -110,8 +119,13 @@ func handleGetUserGameActivityRegistrations(res http.ResponseWriter, req *http.R
 	if endTimeErr != nil {
 		return utils.WriteJSON(res, 400, models.HttpError{Status: http.StatusBadRequest, Description: fmt.Sprintf(constants.QueryParamError, constants.EndDateQueryParam)})
 	}
-	userRegistrations, err := gameRegistrationService.GetUserGameActivityRegistrationsTimeRange(uint(userId), int64(startDate), int64(endDate))
-
+	userRegistrations, err := services.GetCacheServiceInstance().CacheResource(
+		func() (interface{}, error) {
+			return gameRegistrationService.GetUserGameActivityRegistrationsTimeRange(uint(userId), int64(startDate), int64(endDate))
+		},
+		constants.GameActivityRegistrationsCacheResource,
+		utils.BuildUserDateRangeCacheKey(uint(userId), startDate, endDate),
+	)
 	if err != nil {
 		return utils.WriteJSON(res, 400, err.Error())
 	}
@@ -138,7 +152,27 @@ func handleCreateBookActivityRegistration(res http.ResponseWriter, req *http.Req
 		return utils.WriteJSON(res, 400, validationErrs)
 	}
 
-	savedBookRegistration, saveBookRegistrationErr := bookRegistrationService.CreateBookActivityRegistration(&entryBody)
+	tokenClaims, claimsErr := utils.GetTokenClaimsFromRequest(req)
+
+	if claimsErr != nil {
+		utils.GetCustomLogger().Errorf(
+			"Error getting claims on create book registration: %s",
+			claimsErr.Error(),
+		)
+		return utils.WriteJSON(res, 500, constants.ErrorGeneric)
+	}
+
+	savedBookRegistration, saveBookRegistrationErr := bookRegistrationService.CreateBookActivityRegistration(
+		&entryBody,
+		uint(tokenClaims["sub"].(float64)),
+	)
+	cacheEvictionErr := services.GetCacheServiceInstance().EvictUserResource(
+		constants.BookActivityRegistrationsCacheResource,
+		savedBookRegistration.Registration.UserRefer,
+	)
+
+	if cacheEvictionErr != nil {
+	}
 
 	if saveBookRegistrationErr != nil {
 		return utils.WriteJSON(res, 400, saveBookRegistrationErr.Error())
@@ -166,7 +200,24 @@ func handleCreateGameActivityRegistration(res http.ResponseWriter, req *http.Req
 		return utils.WriteJSON(res, 400, validationErrs)
 	}
 
-	savedGameRegistration, saveGameRegistrationErr := gameRegistrationService.CreateGameActivityRegistration(&entryBody)
+	tokenClaims, claimsErr := utils.GetTokenClaimsFromRequest(req)
+
+	if claimsErr != nil {
+		utils.GetCustomLogger().Errorf(
+			"Error getting claims on create game registration: %s",
+			claimsErr.Error(),
+		)
+		return utils.WriteJSON(res, 500, constants.ErrorGeneric)
+	}
+
+	savedGameRegistration, saveGameRegistrationErr := gameRegistrationService.CreateGameActivityRegistration(
+		&entryBody,
+		uint(tokenClaims["sub"].(float64)),
+	)
+	services.GetCacheServiceInstance().EvictUserResource(
+		constants.GameActivityRegistrationsCacheResource,
+		savedGameRegistration.Registration.UserRefer,
+	)
 
 	if saveGameRegistrationErr != nil {
 		return utils.WriteJSON(res, 400, saveGameRegistrationErr.Error())

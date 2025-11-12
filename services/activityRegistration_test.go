@@ -278,31 +278,31 @@ func TestCreateBookActivityRegistration(t *testing.T) {
 	addRegBody := &AddBookActivityRegistrationBody{
 		InternetArchiveId: "test_ia_id",
 		RegistrationDate:  time.Now().Unix(),
-		UserRefer:         1,
 	}
 
-	createdReg, err := bookRegistrationService.CreateBookActivityRegistration(addRegBody)
+	userRefer := uint(1)
+	createdReg, err := bookRegistrationService.CreateBookActivityRegistration(addRegBody, userRefer)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, createdReg)
 	assert.Equal(t, addRegBody.InternetArchiveId, createdReg.InternetArchiveIdentifier)
 	assert.Equal(t, addRegBody.RegistrationDate, createdReg.Registration.RegistrationDate)
-	assert.Equal(t, addRegBody.UserRefer, createdReg.Registration.UserRefer)
+	assert.Equal(t, userRefer, createdReg.Registration.UserRefer)
 
 	// Assert that the generic activity registration was also "created"
 	assert.NotNil(t, mockActivityStore.CreatedActivity)
 	assert.Equal(t, addRegBody.RegistrationDate, mockActivityStore.CreatedActivity.RegistrationDate)
-	assert.Equal(t, addRegBody.UserRefer, mockActivityStore.CreatedActivity.UserRefer)
+	assert.Equal(t, userRefer, mockActivityStore.CreatedActivity.UserRefer)
 
 	// Test case: Error during activity registration creation
 	mockActivityStore.Err = assert.AnError
-	_, err = bookRegistrationService.CreateBookActivityRegistration(addRegBody)
+	_, err = bookRegistrationService.CreateBookActivityRegistration(addRegBody, userRefer)
 	assert.Error(t, err)
 	mockActivityStore.Err = nil // Reset error
 
 	// Test case: Error during book activity registration creation
 	mockBookStore.Err = assert.AnError
-	_, err = bookRegistrationService.CreateBookActivityRegistration(addRegBody)
+	_, err = bookRegistrationService.CreateBookActivityRegistration(addRegBody, userRefer)
 	assert.Error(t, err)
 	mockBookStore.Err = nil // Reset error
 }
@@ -327,30 +327,30 @@ func TestCreateGameActivityRegistration(t *testing.T) {
 	addRegBody := &AddGameActivityRegistrationBody{
 		GameName:         "test_game",
 		RegistrationDate: time.Now().Unix(),
-		UserRefer:        1,
 	}
+	userRefer := uint(1)
 
-	createdReg, err := gameRegistrationService.CreateGameActivityRegistration(addRegBody)
+	createdReg, err := gameRegistrationService.CreateGameActivityRegistration(addRegBody, userRefer)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, createdReg)
 	assert.Equal(t, addRegBody.GameName, createdReg.GameName)
 	assert.Equal(t, addRegBody.RegistrationDate, createdReg.Registration.RegistrationDate)
-	assert.Equal(t, addRegBody.UserRefer, createdReg.Registration.UserRefer)
+	assert.Equal(t, userRefer, createdReg.Registration.UserRefer)
 
 	assert.NotNil(t, mockActivityStore.CreatedActivity)
 	assert.Equal(t, addRegBody.RegistrationDate, mockActivityStore.CreatedActivity.RegistrationDate)
-	assert.Equal(t, addRegBody.UserRefer, mockActivityStore.CreatedActivity.UserRefer)
+	assert.Equal(t, userRefer, mockActivityStore.CreatedActivity.UserRefer)
 
 	// Test case: Error during activity registration creation
 	mockActivityStore.Err = assert.AnError
-	_, err = gameRegistrationService.CreateGameActivityRegistration(addRegBody)
+	_, err = gameRegistrationService.CreateGameActivityRegistration(addRegBody, userRefer)
 	assert.Error(t, err)
 	mockActivityStore.Err = nil
 
 	// Test case: Error during game activity registration creation
 	mockGameStore.Err = assert.AnError
-	_, err = gameRegistrationService.CreateGameActivityRegistration(addRegBody)
+	_, err = gameRegistrationService.CreateGameActivityRegistration(addRegBody, userRefer)
 	assert.Error(t, err)
 	mockGameStore.Err = nil
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+// Writes the given value structure as an HTTP response with the given status.
 func WriteJSON(res http.ResponseWriter, status int, value any) error {
 	res.Header().Add("Content-Type", "application/json")
 	res.WriteHeader(status)
@@ -15,6 +16,7 @@ func WriteJSON(res http.ResponseWriter, status int, value any) error {
 	return json.NewEncoder(res).Encode(value)
 }
 
+// Parses JSON from reader and fits it into the given body structure
 func ReadJSON(reader io.Reader, body interface{}) error {
 	if deserializeErr := json.NewDecoder(reader).Decode(body); deserializeErr != nil {
 		return deserializeErr

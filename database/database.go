@@ -52,7 +52,6 @@ type Database struct {
 }
 
 var connectionInstance *Database
-var logger *utils.CustomLogger = utils.GetCustomLogger()
 
 func GetDatabaseInstance() *Database {
 
@@ -60,13 +59,13 @@ func GetDatabaseInstance() *Database {
 		db, dbErr := sql.Open("libsql", fmt.Sprintf("%s?authToken=%s", os.Getenv("TURSO_DB_URL"), os.Getenv("TURSO_DB_TOKEN")))
 
 		if dbErr != nil {
-			logger.ErrorLogger.Println(dbErr.Error())
+			utils.GetCustomLogger().Error(dbErr.Error())
 		}
 
 		if connErr := db.Ping(); connErr != nil {
-			logger.ErrorLogger.Println(connErr.Error())
+			utils.GetCustomLogger().Error(connErr.Error())
 		} else {
-			logger.InfoLogger.Println("Connected to database")
+			utils.GetCustomLogger().Info("Connected to database")
 		}
 
 		connectionInstance = &Database{dbConnection: db}
@@ -94,7 +93,7 @@ func initDatabase() {
 	for tableName, query := range createTableQueryMap {
 		_, createTableErr := connectionInstance.GetConnection().Exec(query)
 		if createTableErr != nil {
-			logger.ErrorLogger.Printf("Error when creating table %s: %s", tableName, createTableErr.Error())
+			utils.GetCustomLogger().Error(fmt.Sprintf("Error when creating table %s: %s", tableName, createTableErr.Error()))
 		}
 	}
 }

@@ -98,13 +98,13 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Start date timestamp",
-                        "name": "startDate",
+                        "name": "start_date",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "description": "End date timestamp",
-                        "name": "endDate",
+                        "name": "end_date",
                         "in": "query"
                     }
                 ],
@@ -207,13 +207,13 @@ const docTemplate = `{
                     {
                         "type": "integer",
                         "description": "Start date timestamp",
-                        "name": "startDate",
+                        "name": "start_date",
                         "in": "query"
                     },
                     {
                         "type": "integer",
                         "description": "End date timestamp",
-                        "name": "endDate",
+                        "name": "end_date",
                         "in": "query"
                     }
                 ],
@@ -501,51 +501,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/users": {
-            "post": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Create a new user with the provided information",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Create new user",
-                "parameters": [
-                    {
-                        "description": "User information",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/services.UserBody"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/models.User"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
-                        "schema": {
-                            "$ref": "#/definitions/models.HttpError"
-                        }
-                    }
-                }
-            }
-        },
         "/users/{email}": {
             "get": {
                 "security": [
@@ -736,17 +691,13 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "internetArchiveId",
-                "registrationDate",
-                "userId"
+                "registrationDate"
             ],
             "properties": {
                 "internetArchiveId": {
                     "type": "string"
                 },
                 "registrationDate": {
-                    "type": "integer"
-                },
-                "userId": {
                     "type": "integer"
                 }
             }
@@ -755,17 +706,13 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "gameName",
-                "registrationDate",
-                "userId"
+                "registrationDate"
             ],
             "properties": {
                 "gameName": {
                     "type": "string"
                 },
                 "registrationDate": {
-                    "type": "integer"
-                },
-                "userId": {
                     "type": "integer"
                 }
             }
@@ -786,8 +733,7 @@ const docTemplate = `{
             "required": [
                 "content",
                 "publishDate",
-                "title",
-                "userId"
+                "title"
             ],
             "properties": {
                 "content": {
@@ -798,9 +744,6 @@ const docTemplate = `{
                 },
                 "title": {
                     "type": "string"
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         },
@@ -856,25 +799,11 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "services.UserBody": {
-            "type": "object",
-            "required": [
-                "email",
-                "username"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "username": {
-                    "type": "string"
-                }
-            }
         }
     },
     "securityDefinitions": {
-        "Bearer Token": {
+        "BearerAuth": {
+            "description": "Type \"Bearer\" followed by a space and JWT token.",
             "type": "apiKey",
             "name": "Authorization",
             "in": "header"

@@ -9,7 +9,7 @@ import (
 type BookActivityRegistrationService interface {
 	GetUserBookActivityRegistrations(userId uint) ([]*models.BookActivityRegistration, error)
 	GetUserBookActivityRegistrationsTimeRange(userId uint, startTime int64, endTime int64) ([]*models.BookActivityRegistration, error)
-	CreateBookActivityRegistration(addRegistrationBody *AddBookActivityRegistrationBody) (*models.BookActivityRegistration, error)
+	CreateBookActivityRegistration(addRegistrationBody *AddBookActivityRegistrationBody, userId uint) (*models.BookActivityRegistration, error)
 }
 type BookActivityRegistrationServiceImpl struct{}
 
@@ -17,7 +17,7 @@ type BookActivityRegistrationServiceImpl struct{}
 type GameActivityRegistrationService interface {
 	GetUserGameActivityRegistrations(userId uint) ([]*models.GameActivityRegistration, error)
 	GetUserGameActivityRegistrationsTimeRange(userId uint, startDate int64, endDate int64) ([]*models.GameActivityRegistration, error)
-	CreateGameActivityRegistration(addRegistrationBody *AddGameActivityRegistrationBody) (*models.GameActivityRegistration, error)
+	CreateGameActivityRegistration(addRegistrationBody *AddGameActivityRegistrationBody, userId uint) (*models.GameActivityRegistration, error)
 }
 type GameActivityRegistrationServiceImpl struct{}
 
@@ -25,13 +25,11 @@ type GameActivityRegistrationServiceImpl struct{}
 type AddBookActivityRegistrationBody struct {
 	InternetArchiveId string `json:"internetArchiveId" validate:"required"`
 	RegistrationDate  int64  `json:"registrationDate" validate:"required"`
-	UserRefer         uint   `json:"userId" validate:"required"`
 }
 
 type AddGameActivityRegistrationBody struct {
 	GameName         string `json:"gameName" validate:"required"`
 	RegistrationDate int64  `json:"registrationDate" validate:"required"`
-	UserRefer        uint   `json:"userId" validate:"required"`
 }
 
 var bookActivityRegistrationStorage storage.BookActivityRegistrationStorageInterface = &storage.BookActivityRegistrationStorage{}
@@ -78,10 +76,10 @@ func (gameActivityRegistrationService *GameActivityRegistrationServiceImpl) GetU
 	return dbUserRegistrations.([]*models.GameActivityRegistration), nil
 }
 
-func (bookActivityRegistrationService *BookActivityRegistrationServiceImpl) CreateBookActivityRegistration(addRegistrationBody *AddBookActivityRegistrationBody) (*models.BookActivityRegistration, error) {
+func (bookActivityRegistrationService *BookActivityRegistrationServiceImpl) CreateBookActivityRegistration(addRegistrationBody *AddBookActivityRegistrationBody, userId uint) (*models.BookActivityRegistration, error) {
 	dbActivityRegistration := &models.ActivityRegistration{
 		RegistrationDate: addRegistrationBody.RegistrationDate,
-		UserRefer:        addRegistrationBody.UserRefer,
+		UserRefer:        userId,
 	}
 	createActivityRegistrationErr := activityRegistrationStorage.Create(dbActivityRegistration)
 
@@ -103,11 +101,11 @@ func (bookActivityRegistrationService *BookActivityRegistrationServiceImpl) Crea
 	return dbBookActivityRegistration, nil
 }
 
-func (gameActivityRegistrationService *GameActivityRegistrationServiceImpl) CreateGameActivityRegistration(addRegistrationBody *AddGameActivityRegistrationBody) (*models.GameActivityRegistration, error) {
+func (gameActivityRegistrationService *GameActivityRegistrationServiceImpl) CreateGameActivityRegistration(addRegistrationBody *AddGameActivityRegistrationBody, userId uint) (*models.GameActivityRegistration, error) {
 
 	dbActivityRegistration := &models.ActivityRegistration{
 		RegistrationDate: addRegistrationBody.RegistrationDate,
-		UserRefer:        addRegistrationBody.UserRefer,
+		UserRefer:        userId,
 	}
 	createActivityRegistrationErr := activityRegistrationStorage.Create(dbActivityRegistration)
 
