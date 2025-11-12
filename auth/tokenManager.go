@@ -20,14 +20,24 @@ type TokenManagerImpl struct {
 	secretKeyProvider func() ([]byte, error)
 }
 
+var tokenManagerInstance *TokenManagerImpl
+
+func GetTokenManager() *TokenManagerImpl {
+	if tokenManagerInstance == nil {
+		tokenManagerInstance = newTokenManagerImpl()
+	}
+
+	return tokenManagerInstance
+}
+
 // Empty constructor for TokenManager implementation. Uses default secret key provider.
-func NewTokenManagerImpl() *TokenManagerImpl {
+func newTokenManagerImpl() *TokenManagerImpl {
 	return &TokenManagerImpl{secretKeyProvider: GetSecretKey}
 }
 
 // Parametrized constructor for DefaultTokenManager
 // If the provided provider is nil, it defaults to using default secret key provider.
-func NewDefaultTokenManagerWithProvider(provider func() ([]byte, error)) *TokenManagerImpl {
+func newDefaultTokenManagerWithProvider(provider func() ([]byte, error)) *TokenManagerImpl {
 	p := provider
 	if p == nil {
 		p = GetSecretKey
@@ -52,8 +62,8 @@ func (d *TokenManagerImpl) GenerateToken(user models.User, kind models.TokenKind
 		expiration = time.Now().Add(24 * 7 * time.Hour).Unix()
 	}
 
+	claims["sub"] = user.Id
 	claims["exp"] = expiration
-	claims["email"] = user.Email
 
 	tokenString, err := token.SignedString(secretKey)
 

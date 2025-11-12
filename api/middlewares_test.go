@@ -147,7 +147,7 @@ type mockDiaryEntryService struct {
 	GetDiaryEntryByIdFunc       func(id uint) (*models.DiaryEntry, error)
 	GetUserEntriesFunc          func(userId uint) ([]*models.DiaryEntry, error)
 	GetUserEntriesTimeRangeFunc func(userId uint, startDate int64, endDate int64) ([]*models.DiaryEntry, error)
-	SaveDiaryEntryFunc          func(diaryEntryBody *services.SaveDiaryEntryBody) (*models.DiaryEntry, error)
+	SaveDiaryEntryFunc          func(diaryEntryBody *services.SaveDiaryEntryBody, userId uint) (*models.DiaryEntry, error)
 	UpdateDiaryEntryFunc        func(diaryEntryId uint, diaryEntryBody *services.UpdateDiaryEntryBody) (*models.DiaryEntry, error)
 	DeleteDiaryEntryFunc        func(id uint) error
 }
@@ -173,9 +173,9 @@ func (m *mockDiaryEntryService) GetUserEntriesTimeRange(userId uint, startDate i
 	return nil, nil
 }
 
-func (m *mockDiaryEntryService) SaveDiaryEntry(diaryEntryBody *services.SaveDiaryEntryBody) (*models.DiaryEntry, error) {
+func (m *mockDiaryEntryService) SaveDiaryEntry(diaryEntryBody *services.SaveDiaryEntryBody, userId uint) (*models.DiaryEntry, error) {
 	if m.SaveDiaryEntryFunc != nil {
-		return m.SaveDiaryEntryFunc(diaryEntryBody)
+		return m.SaveDiaryEntryFunc(diaryEntryBody, userId)
 	}
 	return nil, nil
 }
@@ -243,7 +243,7 @@ func TestCheckAuth(t *testing.T) {
 			mockValidateTokenErr:   nil,
 			mockGetTokenByValue:    &models.Token{},
 			mockGetTokenByValueErr: nil,
-			mockGetClaims:          jwt.MapClaims{"email": "admin@example.com"},
+			mockGetClaims:          jwt.MapClaims{"sub": float64(1)},
 			mockGetClaimsErr:       nil,
 			mockGetUserByEmail:     &models.User{Role: models.Admin},
 			mockGetUserByEmailErr:  nil,
@@ -257,13 +257,13 @@ func TestCheckAuth(t *testing.T) {
 			mockValidateTokenErr:   nil,
 			mockGetTokenByValue:    &models.Token{},
 			mockGetTokenByValueErr: nil,
-			mockGetClaims:          jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:          jwt.MapClaims{"sub": float64(1)},
 			mockGetClaimsErr:       nil,
 			mockGetUserByEmail:     &models.User{Role: models.Standard},
 			mockGetUserByEmailErr:  nil,
 			reqMethod:              http.MethodPost,
-			reqURLPath:             "/api/v1/someotherendpoint",
-			expectedErr:            errors.New("method not allowed"),
+			reqURLPath:             "/api/v1/users",
+			expectedErr:            nil,
 		},
 		{
 			name:                   "Valid token, non-admin user, user-accessible POST (diaryEntries)",
@@ -271,7 +271,7 @@ func TestCheckAuth(t *testing.T) {
 			mockValidateTokenErr:   nil,
 			mockGetTokenByValue:    &models.Token{},
 			mockGetTokenByValueErr: nil,
-			mockGetClaims:          jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:          jwt.MapClaims{"sub": float64(1)},
 			mockGetClaimsErr:       nil,
 			mockGetUserByEmail:     &models.User{Role: models.Standard},
 			mockGetUserByEmailErr:  nil,
@@ -285,7 +285,7 @@ func TestCheckAuth(t *testing.T) {
 			mockValidateTokenErr:   nil,
 			mockGetTokenByValue:    &models.Token{},
 			mockGetTokenByValueErr: nil,
-			mockGetClaims:          jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:          jwt.MapClaims{"sub": float64(1)},
 			mockGetClaimsErr:       nil,
 			mockGetUserByEmail:     &models.User{Role: models.Standard},
 			mockGetUserByEmailErr:  nil,
@@ -299,7 +299,7 @@ func TestCheckAuth(t *testing.T) {
 			mockValidateTokenErr:   nil,
 			mockGetTokenByValue:    &models.Token{},
 			mockGetTokenByValueErr: nil,
-			mockGetClaims:          jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:          jwt.MapClaims{"sub": float64(1)},
 			mockGetClaimsErr:       nil,
 			mockGetUserByEmail:     &models.User{Role: models.Standard},
 			mockGetUserByEmailErr:  nil,
@@ -422,7 +422,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:               "/api/v1/diaryEntries/123",
 			reqID:                    "123",
 			authHeader:               "Bearer valid.token",
-			mockGetClaims:            jwt.MapClaims{"email": "other@example.com"},
+			mockGetClaims:            jwt.MapClaims{"sub": float64(123)},
 			mockGetDiaryEntryById:    &models.DiaryEntry{Registration: models.ActivityRegistration{UserRefer: 456}},
 			mockGetDiaryEntryByIdErr: nil,
 			mockGetUserById:          &models.User{Email: "user@example.com"},
@@ -435,7 +435,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:               "/api/v1/diaryEntries/123",
 			reqID:                    "123",
 			authHeader:               "Bearer valid.token",
-			mockGetClaims:            jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:            jwt.MapClaims{"sub": float64(123)},
 			mockGetDiaryEntryById:    &models.DiaryEntry{Registration: models.ActivityRegistration{UserRefer: 123}},
 			mockGetDiaryEntryByIdErr: nil,
 			mockGetUserById:          &models.User{Email: "user@example.com"},
@@ -448,7 +448,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:               "/api/v1/diaryEntries/123",
 			reqID:                    "123",
 			authHeader:               "Bearer valid.token",
-			mockGetClaims:            jwt.MapClaims{"email": "other@example.com"},
+			mockGetClaims:            jwt.MapClaims{"sub": float64(123)},
 			mockGetDiaryEntryById:    &models.DiaryEntry{Registration: models.ActivityRegistration{UserRefer: 456}},
 			mockGetDiaryEntryByIdErr: nil,
 			mockGetUserById:          &models.User{Email: "user@example.com"},
@@ -461,7 +461,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:               "/api/v1/diaryEntries/123",
 			reqID:                    "123",
 			authHeader:               "Bearer valid.token",
-			mockGetClaims:            jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:            jwt.MapClaims{"sub": float64(123)},
 			mockGetDiaryEntryById:    &models.DiaryEntry{Registration: models.ActivityRegistration{UserRefer: 123}},
 			mockGetDiaryEntryByIdErr: nil,
 			mockGetUserById:          &models.User{Email: "user@example.com"},
@@ -474,7 +474,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:               "/api/v1/activityRegistrations/books/123",
 			reqID:                    "123",
 			authHeader:               "Bearer valid.token",
-			mockGetClaims:            jwt.MapClaims{"email": "other@example.com"},
+			mockGetClaims:            jwt.MapClaims{"sub": float64(123)},
 			mockGetDiaryEntryById:    &models.DiaryEntry{Registration: models.ActivityRegistration{UserRefer: 456}},
 			mockGetDiaryEntryByIdErr: nil,
 			mockGetUserById:          &models.User{Email: "user@example.com"},
@@ -487,10 +487,10 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:               "/api/v1/activityRegistrations/games/123",
 			reqID:                    "123",
 			authHeader:               "Bearer valid.token",
-			mockGetClaims:            jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims:            jwt.MapClaims{"sub": float64(123)},
 			mockGetDiaryEntryById:    &models.DiaryEntry{Registration: models.ActivityRegistration{UserRefer: 123}},
 			mockGetDiaryEntryByIdErr: nil,
-			mockGetUserById:          &models.User{Email: "user@example.com"},
+			mockGetUserById:          &models.User{Id: 123},
 			mockGetUserByIdErr:       nil,
 			expectedErr:              nil,
 		},
@@ -500,7 +500,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:    "/api/v1/diaryEntries/123",
 			reqID:         "123",
 			authHeader:    "Bearer valid.token",
-			mockGetClaims: jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims: jwt.MapClaims{"sub": float64(1)},
 			expectedErr:   nil,
 		},
 		{
@@ -509,7 +509,7 @@ func TestCheckUserOwnershipMiddleware(t *testing.T) {
 			reqURLPath:    "/api/v1/users/123",
 			reqID:         "123",
 			authHeader:    "Bearer valid.token",
-			mockGetClaims: jwt.MapClaims{"email": "user@example.com"},
+			mockGetClaims: jwt.MapClaims{"sub": float64(1)},
 			expectedErr:   nil,
 		},
 	}

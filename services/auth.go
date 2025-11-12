@@ -112,12 +112,14 @@ func (authService *AuthService) RefreshToken(request RefreshTokenRequest) (*Refr
 		return nil, claimsErr
 	}
 
-	email, ok := claims["email"].(string)
+	userId, ok := claims["sub"].(float64)
+
 	if !ok {
-		return nil, errors.New("email claim is not a string or not found")
+		return nil, errors.New("user id is not a number or not found")
 	}
 
-	user, getUserErr := authService.userService.GetUserByEmail(email)
+	user, getUserErr := authService.userService.GetUserById(uint(userId))
+
 	if getUserErr != nil {
 		return nil, getUserErr
 	}

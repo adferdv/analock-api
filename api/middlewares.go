@@ -18,7 +18,7 @@ import (
 
 var tokenService services.TokenService = &services.TokenServiceImpl{}
 var userService services.UserService = &services.UserServiceImpl{}
-var tokenManager auth.TokenManager = auth.NewTokenManagerImpl()
+var tokenManager auth.TokenManager = auth.GetTokenManager()
 var diaryEntryService services.DiaryEntryService = &services.DefaultDiaryEntryService{}
 
 // AuthMiddleware is a middleware to check if each request is correctly authorized.
@@ -72,6 +72,19 @@ func ValidatePathParams(next http.Handler) http.Handler {
 	})
 }
 
+func UserOwnershipMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ownershipErr := checkUserOwnershipMiddleware(r)
+
+		if ownershipErr != nil {
+			utils.WriteJSON(w, 403,
+				models.HttpError{Status: 403, Description: ownershipErr.Error()})
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
 // checkUserOwnershipMiddleware checks if the user has ownership on the resource it is trying to edit or delete.
 // Returs the next http handler to be processed.
 func checkUserOwnershipMiddleware(req *http.Request) error {
@@ -90,27 +103,18 @@ func checkUserOwnershipMiddleware(req *http.Request) error {
 		if claimsErr != nil {
 			return claimsErr
 		}
-		tokenEmail := tokenClaims["email"].(string)
+
+		userId := tokenClaims["sub"].(float64)
 		if req.Method == http.MethodGet {
-			var ownershipErr error
-
 			if strings.Contains(req.URL.Path, "user") {
-				ownershipErr = checkUserEmailOwnership(uint(itemId), tokenEmail)
+				return checkUserOwnership(uint(itemId), uint(userId))
 			} else {
-				ownershipErr = checkUserOwnershipFromDiaryEntryId(uint(itemId), tokenEmail)
-			}
-
-			if ownershipErr != nil {
-				return ownershipErr
+				return checkUserOwnershipFromDiaryEntryId(uint(itemId), uint(userId))
 			}
 
 		} else if req.Method == http.MethodPut {
 			if strings.Contains(req.URL.Path, constants.ApiUrlDiaryEntries) {
-				ownershipErr := checkUserOwnershipFromDiaryEntryId(uint(itemId), tokenEmail)
-
-				if ownershipErr != nil {
-					return ownershipErr
-				}
+				return checkUserOwnershipFromDiaryEntryId(uint(itemId), uint(userId))
 			}
 		}
 	}
@@ -152,46 +156,24 @@ func checkAuth(req *http.Request) error {
 		return errors.New("token revoked")
 	}
 
-	claims, claimsErr := tokenManager.GetClaims(tokenString)
-
-	if claimsErr != nil {
-		return claimsErr
-	}
-
-	user, _ := userService.GetUserByEmail(claims["email"].(string))
-	// user-accessible endpoints
-	userDiaryEntryEndpoints := regexp.MustCompile(`/api/v1/diaryEntries/*`)
-	userActivityRegistrationEndpoints := regexp.MustCompile(`/api/v1/activityRegistrations/*`)
-	// for POST, PUT and DELETE methods, check if user is admin and that the endpoint is not user accessible
-	if ((req.Method == "POST" || req.Method == "PUT" || req.Method == "DELETE") && (user.Role != models.Admin)) &&
-		(!userDiaryEntryEndpoints.MatchString(req.URL.Path) && !userActivityRegistrationEndpoints.MatchString(req.URL.Path)) {
-		return errors.New("method not allowed")
-	}
-
 	return nil
 }
 
 // Check if a user's email ,identified by the id passed as parameter, corresponds to the email contained in token claims.
-func checkUserEmailOwnership(userId uint, tokenEmail string) error {
-	entryUser, getUserErr := userService.GetUserById(userId)
-
-	if getUserErr != nil {
-		return getUserErr
-	}
-
-	if tokenEmail != entryUser.Email {
+func checkUserOwnership(reqUserId uint, tokenUserId uint) error {
+	if reqUserId != tokenUserId {
 		return errors.New(constants.ErrorUnauthorizedOperation)
 	}
 	return nil
 }
 
 // Checks if user has ownership of a diary entry, knowing the entry id
-func checkUserOwnershipFromDiaryEntryId(itemId uint, tokenEmail string) error {
+func checkUserOwnershipFromDiaryEntryId(itemId uint, userId uint) error {
 	diaryEntry, getEntryError := diaryEntryService.GetDiaryEntryById(uint(itemId))
 
 	if getEntryError != nil {
 		return getEntryError
 	}
 
-	return checkUserEmailOwnership(diaryEntry.Registration.UserRefer, tokenEmail)
+	return checkUserOwnership(diaryEntry.Registration.UserRefer, userId)
 }

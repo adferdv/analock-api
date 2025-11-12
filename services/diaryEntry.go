@@ -9,7 +9,6 @@ type SaveDiaryEntryBody struct {
 	Title       string `json:"title" validate:"required"`
 	Content     string `json:"content" validate:"required"`
 	PublishDate int64  `json:"publishDate" validate:"required"`
-	UserRefer   uint   `json:"userId" validate:"required"`
 }
 
 type UpdateDiaryEntryBody struct {
@@ -24,7 +23,7 @@ type DiaryEntryService interface {
 	GetDiaryEntryById(id uint) (*models.DiaryEntry, error)
 	GetUserEntries(userId uint) ([]*models.DiaryEntry, error)
 	GetUserEntriesTimeRange(userId uint, startDate int64, endDate int64) ([]*models.DiaryEntry, error)
-	SaveDiaryEntry(diaryEntryBody *SaveDiaryEntryBody) (*models.DiaryEntry, error)
+	SaveDiaryEntry(diaryEntryBody *SaveDiaryEntryBody, userId uint) (*models.DiaryEntry, error)
 	UpdateDiaryEntry(diaryEntryId uint, diaryEntryBody *UpdateDiaryEntryBody) (*models.DiaryEntry, error)
 	DeleteDiaryEntry(id uint) error
 }
@@ -61,10 +60,10 @@ func (defaultDiaryEntryService *DefaultDiaryEntryService) GetUserEntriesTimeRang
 	return diaryEntry.([]*models.DiaryEntry), nil
 }
 
-func (defaultDiaryEntryService *DefaultDiaryEntryService) SaveDiaryEntry(diaryEntryBody *SaveDiaryEntryBody) (*models.DiaryEntry, error) {
+func (defaultDiaryEntryService *DefaultDiaryEntryService) SaveDiaryEntry(diaryEntryBody *SaveDiaryEntryBody, userId uint) (*models.DiaryEntry, error) {
 	dbActivityRegistration := &models.ActivityRegistration{
 		RegistrationDate: diaryEntryBody.PublishDate,
-		UserRefer:        diaryEntryBody.UserRefer,
+		UserRefer:        userId,
 	}
 
 	saveRegistrationErr := activityRegistrationStorage.Create(dbActivityRegistration)

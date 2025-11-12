@@ -2,8 +2,6 @@ package storage
 
 import (
 	"database/sql"
-
-	"github.com/adfer-dev/analock-api/utils"
 )
 
 type Storage interface {
@@ -13,5 +11,3 @@ type Storage interface {
 	Delete(uint) error
 	Scan(*sql.Rows) (interface{}, error)
 }
-
-var storageLogger *utils.CustomLogger = utils.GetCustomLogger()

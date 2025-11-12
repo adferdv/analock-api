@@ -19,7 +19,7 @@ func InitAuthRoutes(router *mux.Router) {
 
 var authService *services.AuthService = services.NewAuthService(
 	services.NewGoogleTokenValidatorImpl(),
-	auth.NewTokenManagerImpl(),
+	auth.GetTokenManager(),
 	&services.UserServiceImpl{},
 	&services.TokenServiceImpl{},
 	&services.ExternalLoginServiceImpl{},
