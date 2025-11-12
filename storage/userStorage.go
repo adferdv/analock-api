@@ -2,10 +2,11 @@ package storage
 
 import (
 	"database/sql"
-	"log"
+	"fmt"
 
 	"github.com/adfer-dev/analock-api/database"
 	"github.com/adfer-dev/analock-api/models"
+	"github.com/adfer-dev/analock-api/utils"
 )
 
 const (
@@ -93,7 +94,6 @@ func (userStorage *UserStorage) Create(user interface{}) error {
 	if !ok {
 		return failedToParseUserError
 	}
-	log.Println(dbUser)
 	user, getUserErr := userStorage.Get(dbUser.Id)
 	_, isNotFoundError := getUserErr.(*models.DbNotFoundError)
 
@@ -103,7 +103,7 @@ func (userStorage *UserStorage) Create(user interface{}) error {
 
 	result, err := database.GetDatabaseInstance().GetConnection().Exec(insertUserQuery, dbUser.Email, dbUser.UserName, dbUser.Role)
 	if err != nil {
-		storageLogger.ErrorLogger.Printf("error when saving user: %s", err.Error())
+		utils.GetCustomLogger().Error(fmt.Sprintf("error when saving user: %s", err.Error()))
 		return err
 	}
 

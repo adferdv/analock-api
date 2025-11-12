@@ -70,12 +70,9 @@ definitions:
         type: string
       registrationDate:
         type: integer
-      userId:
-        type: integer
     required:
     - internetArchiveId
     - registrationDate
-    - userId
     type: object
   services.AddGameActivityRegistrationBody:
     properties:
@@ -83,12 +80,9 @@ definitions:
         type: string
       registrationDate:
         type: integer
-      userId:
-        type: integer
     required:
     - gameName
     - registrationDate
-    - userId
     type: object
   services.RefreshTokenRequest:
     properties:
@@ -105,13 +99,10 @@ definitions:
         type: integer
       title:
         type: string
-      userId:
-        type: integer
     required:
     - content
     - publishDate
     - title
-    - userId
     type: object
   services.TokenResponse:
     properties:
@@ -148,16 +139,6 @@ definitions:
     - providerId
     - providerToken
     - userName
-    type: object
-  services.UserBody:
-    properties:
-      email:
-        type: string
-      username:
-        type: string
-    required:
-    - email
-    - username
     type: object
 info:
   contact:
@@ -214,11 +195,11 @@ paths:
         type: integer
       - description: Start date timestamp
         in: query
-        name: startDate
+        name: start_date
         type: integer
       - description: End date timestamp
         in: query
-        name: endDate
+        name: end_date
         type: integer
       produces:
       - application/json
@@ -284,11 +265,11 @@ paths:
         type: integer
       - description: Start date timestamp
         in: query
-        name: startDate
+        name: start_date
         type: integer
       - description: End date timestamp
         in: query
-        name: endDate
+        name: end_date
         type: integer
       produces:
       - application/json
@@ -478,34 +459,6 @@ paths:
       summary: Get user diary entries
       tags:
       - diary
-  /users:
-    post:
-      consumes:
-      - application/json
-      description: Create a new user with the provided information
-      parameters:
-      - description: User information
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/services.UserBody'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/models.User'
-        "403":
-          description: Forbidden
-          schema:
-            $ref: '#/definitions/models.HttpError'
-      security:
-      - BearerAuth: []
-      summary: Create new user
-      tags:
-      - users
   /users/{email}:
     get:
       consumes:
@@ -564,7 +517,8 @@ schemes:
 - http
 - https
 securityDefinitions:
-  Bearer Token:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
     in: header
     name: Authorization
     type: apiKey

@@ -206,31 +206,31 @@ func TestSaveDiaryEntry(t *testing.T) {
 		Title:       "New Diary Entry",
 		Content:     "Diary content here.",
 		PublishDate: time.Now().Unix(),
-		UserRefer:   uint(5),
 	}
 
 	// --- Test successful save ---
-	createdEntry, err := diaryEntryService.SaveDiaryEntry(saveBody)
+	userId := uint(1)
+	createdEntry, err := diaryEntryService.SaveDiaryEntry(saveBody, userId)
 
 	assert.NoError(t, err)
 	assert.NotNil(t, createdEntry)
 	assert.Equal(t, saveBody.Title, createdEntry.Title)
 	assert.Equal(t, saveBody.Content, createdEntry.Content)
 	assert.Equal(t, saveBody.PublishDate, createdEntry.Registration.RegistrationDate)
-	assert.Equal(t, saveBody.UserRefer, createdEntry.Registration.UserRefer)
+	assert.Equal(t, userId, createdEntry.Registration.UserRefer)
 	assert.NotNil(t, activityRegistrationStorageMock.CreatedActivity) // Check activity was passed to mock ARS
 	assert.Equal(t, saveBody.PublishDate, activityRegistrationStorageMock.CreatedActivity.RegistrationDate)
 
 	// --- Test error from activityRegistrationStorage.Create ---
 	activityRegistrationStorageMock.Err = errors.New("ARS create failed")
-	_, err = diaryEntryService.SaveDiaryEntry(saveBody)
+	_, err = diaryEntryService.SaveDiaryEntry(saveBody, userId)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "ARS create failed")
 	activityRegistrationStorageMock.Err = nil // Reset error
 
 	// --- Test error from diaryEntryStorage.Create ---
 	diaryEntryStorageMock.CreateErr = errors.New("DES create failed")
-	_, err = diaryEntryService.SaveDiaryEntry(saveBody)
+	_, err = diaryEntryService.SaveDiaryEntry(saveBody, userId)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "DES create failed")
 	diaryEntryStorageMock.CreateErr = nil // Reset error

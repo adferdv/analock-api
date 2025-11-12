@@ -10,16 +10,19 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config
 
-RUN mkdir /app
-
 WORKDIR /app
 
 COPY . .
 
-RUN echo "TURSO_DB_URL=$DB_URL" > .env && \
-    echo "TURSO_DB_TOKEN=$DB_TOKEN" >> .env \
-    echo "API_ENVIRONMENT=production" >> .env \
-    echo "API_URL_HOST=analock" >> .env
+RUN --mount=type=secret,id=DB_URL \
+    --mount=type=secret,id=DB_TOKEN \
+    --mount=type=secret,id=API_PROD_URL \
+    echo "TURSO_DB_URL=$(cat /run/secrets/DB_URL)" > .env && \
+    echo "TURSO_DB_TOKEN=$(cat /run/secrets/DB_TOKEN)" >> .env && \
+    echo "API_ENVIRONMENT=production" >> .env && \
+    echo "API_PROD_URL_HOST=$(cat /run/secrets/API_PROD_URL)" >> .env && \
+    echo "API_CACHE_EXPIRATION=6h" >> .env && \
+    echo "API_CACHE_EVICTION_INTERVAL=1h" >> .env
 
 RUN go get -d -v ./...
 

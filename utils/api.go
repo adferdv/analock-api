@@ -1,14 +1,18 @@
 package utils
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 
+	"github.com/adfer-dev/analock-api/auth"
 	"github.com/adfer-dev/analock-api/models"
 	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt"
 )
 
 type APIFunc func(res http.ResponseWriter, req *http.Request) error
+
+var tokenManager *auth.TokenManagerImpl = auth.GetTokenManager()
 
 // Function that parses an APIFunc function to a http.HandlerFunc function
 func ParseToHandlerFunc(f APIFunc) http.HandlerFunc {
@@ -21,6 +25,7 @@ func ParseToHandlerFunc(f APIFunc) http.HandlerFunc {
 	}
 }
 
+// Maps an error to the HttpError struct
 func TranslateDbErrorToHttpError(err error) *models.HttpError {
 	httpError := &models.HttpError{}
 
@@ -40,11 +45,12 @@ func TranslateDbErrorToHttpError(err error) *models.HttpError {
 	return httpError
 }
 
+// Handles request body validation, returning validation errors if found.
 func HandleValidation(req *http.Request, body interface{}) []*models.HttpError {
 	httpErrors := make([]*models.HttpError, 0)
 
 	if parseErr := ReadJSON(req.Body, body); parseErr != nil {
-		log.Println(parseErr)
+		GetCustomLogger().Info(parseErr)
 		if validationErrs, ok := parseErr.(validator.ValidationErrors); ok {
 			for _, validationErr := range validationErrs {
 				httpErrors = append(httpErrors,
@@ -57,4 +63,26 @@ func HandleValidation(req *http.Request, body interface{}) []*models.HttpError {
 	}
 
 	return httpErrors
+}
+
+// Builds a cache key based on given user ID
+func BuildUserCacheKey(userId uint) string {
+	return fmt.Sprintf("user-%d", userId)
+}
+
+// Builds a cache key based on given user ID, start date and end date
+func BuildUserDateRangeCacheKey(userId uint, startDate int, endDate int) string {
+	return fmt.Sprintf("%s-start%d-end%d", BuildUserCacheKey(userId), startDate, endDate)
+}
+
+// Gets token claims, by first retrieving token value from HTTP headers
+func GetTokenClaimsFromRequest(req *http.Request) (jwt.MapClaims, error) {
+	tokenValue := req.Header.Get("Authorization")[7:]
+	tokenClaims, claimsErr := tokenManager.GetClaims(tokenValue)
+
+	if claimsErr != nil {
+		return nil, claimsErr
+	}
+
+	return tokenClaims, nil
 }

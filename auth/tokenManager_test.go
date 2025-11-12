@@ -23,7 +23,7 @@ func mockErrorSecretKeyProvider() ([]byte, error) {
 }
 
 func TestDefaultTokenManager_GenerateToken(t *testing.T) {
-	manager := NewDefaultTokenManagerWithProvider(mockSecretKeyProvider)
+	manager := newDefaultTokenManagerWithProvider(mockSecretKeyProvider)
 	user := models.User{Id: 1, Email: "test@example.com"}
 
 	t.Run("generate_access_token", func(t *testing.T) {
@@ -39,7 +39,7 @@ func TestDefaultTokenManager_GenerateToken(t *testing.T) {
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		assert.True(t, ok)
-		assert.Equal(t, user.Email, claims["email"])
+		assert.Equal(t, user.Id, uint(claims["sub"].(float64)))
 		exp, ok := claims["exp"].(float64)
 		assert.True(t, ok)
 		assert.InDelta(t, time.Now().Add(1*time.Hour).Unix(), int64(exp), 5)
@@ -58,14 +58,14 @@ func TestDefaultTokenManager_GenerateToken(t *testing.T) {
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		assert.True(t, ok)
-		assert.Equal(t, user.Email, claims["email"])
+		assert.Equal(t, user.Id, uint(claims["sub"].(float64)))
 		exp, ok := claims["exp"].(float64)
 		assert.True(t, ok)
 		assert.InDelta(t, time.Now().Add(24*7*time.Hour).Unix(), int64(exp), 5)
 	})
 
 	t.Run("error_from_get_secret_key", func(t *testing.T) {
-		errorManager := NewDefaultTokenManagerWithProvider(mockErrorSecretKeyProvider)
+		errorManager := newDefaultTokenManagerWithProvider(mockErrorSecretKeyProvider)
 		_, err := errorManager.GenerateToken(user, models.Access)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "mock secret key provider error")
@@ -73,20 +73,20 @@ func TestDefaultTokenManager_GenerateToken(t *testing.T) {
 }
 
 func TestDefaultTokenManager_ValidateToken(t *testing.T) {
-	manager := NewDefaultTokenManagerWithProvider(mockSecretKeyProvider)
+	manager := newDefaultTokenManagerWithProvider(mockSecretKeyProvider)
 	user := models.User{Id: 1, Email: "test@example.com"}
 	validAccessToken, _ := manager.GenerateToken(user, models.Access)
 
 	expiredToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": user.Email,
-		"exp":   time.Now().Add(-1 * time.Hour).Unix(),
+		"sub": user.Id,
+		"exp": time.Now().Add(-1 * time.Hour).Unix(),
 	})
 	expiredTokenString, _ := expiredToken.SignedString(testSecretKey)
 
 	otherSecret := []byte("other-secret-key")
 	tokenWithOtherKey := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email": user.Email,
-		"exp":   time.Now().Add(1 * time.Hour).Unix(),
+		"sub": user.Id,
+		"exp": time.Now().Add(1 * time.Hour).Unix(),
 	})
 	tokenWithOtherKeyString, _ := tokenWithOtherKey.SignedString(otherSecret)
 
@@ -131,7 +131,7 @@ func TestDefaultTokenManager_ValidateToken(t *testing.T) {
 	})
 
 	t.Run("error_from_get_secret_key_on_validate", func(t *testing.T) {
-		errorManager := NewDefaultTokenManagerWithProvider(mockErrorSecretKeyProvider)
+		errorManager := newDefaultTokenManagerWithProvider(mockErrorSecretKeyProvider)
 		err := errorManager.ValidateToken(validAccessToken)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "mock secret key provider error")
@@ -139,7 +139,7 @@ func TestDefaultTokenManager_ValidateToken(t *testing.T) {
 }
 
 func TestDefaultTokenManager_GetClaims(t *testing.T) {
-	manager := NewDefaultTokenManagerWithProvider(mockSecretKeyProvider)
+	manager := newDefaultTokenManagerWithProvider(mockSecretKeyProvider)
 	user := models.User{Id: 1, Email: "test@example.com"}
 	validAccessToken, _ := manager.GenerateToken(user, models.Access)
 
@@ -147,7 +147,7 @@ func TestDefaultTokenManager_GetClaims(t *testing.T) {
 		claims, err := manager.GetClaims(validAccessToken)
 		assert.NoError(t, err)
 		assert.NotNil(t, claims)
-		assert.Equal(t, user.Email, claims["email"])
+		assert.Equal(t, user.Id, uint(claims["sub"].(float64)))
 		_, ok := claims["exp"].(float64)
 		assert.True(t, ok)
 	})
@@ -155,8 +155,8 @@ func TestDefaultTokenManager_GetClaims(t *testing.T) {
 	t.Run("get_claims_invalid_token_signature", func(t *testing.T) {
 		otherSecret := []byte("other-secret-for-claims")
 		tokenWithOtherKey := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"email": user.Email,
-			"exp":   time.Now().Add(1 * time.Hour).Unix(),
+			"sub": user.Id,
+			"exp": time.Now().Add(1 * time.Hour).Unix(),
 		})
 		tokenWithOtherKeyString, _ := tokenWithOtherKey.SignedString(otherSecret)
 
@@ -180,7 +180,7 @@ func TestDefaultTokenManager_GetClaims(t *testing.T) {
 	})
 
 	t.Run("error_from_get_secret_key_on_get_claims", func(t *testing.T) {
-		errorManager := NewDefaultTokenManagerWithProvider(mockErrorSecretKeyProvider)
+		errorManager := newDefaultTokenManagerWithProvider(mockErrorSecretKeyProvider)
 		_, err := errorManager.GetClaims(validAccessToken)
 		assert.Error(t, err)
 		assert.EqualError(t, err, "mock secret key provider error")
