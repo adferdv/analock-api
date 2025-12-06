@@ -24,7 +24,7 @@ var diaryEntryService services.DiaryEntryService = &services.DefaultDiaryEntrySe
 // AuthMiddleware is a middleware to check if each request is correctly authorized.
 // Returs the next http handler to be processed.
 func AuthMiddleware(next http.Handler) http.Handler {
-	authEndpoints := regexp.MustCompile(constants.ApiV1UrlRoot + `/(auth|swagger)/*`)
+	authEndpoints := regexp.MustCompile(constants.ApiV1UrlRoot + `/(auth|swagger|internetArchive)/*`)
 
 	return http.HandlerFunc(func(res http.ResponseWriter, req *http.Request) {
 		//If the endpoint is not allowed, check its auth token.
