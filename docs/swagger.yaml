@@ -45,6 +45,87 @@ definitions:
       status:
         type: integer
     type: object
+  models.InternetArchiveBook:
+    properties:
+      creator:
+        type: string
+      identifier:
+        type: string
+      title:
+        type: string
+    type: object
+  models.InternetArchiveBookResponse:
+    properties:
+      docs:
+        items:
+          $ref: '#/definitions/models.InternetArchiveBook'
+        type: array
+      numFound:
+        type: integer
+      start:
+        type: integer
+    type: object
+  models.InternetArchiveFile:
+    properties:
+      format:
+        type: string
+      name:
+        type: string
+    type: object
+  models.InternetArchiveMetadata:
+    properties:
+      addeddate:
+        type: string
+      backup_location:
+        type: string
+      collection:
+        items:
+          type: string
+        type: array
+      curation:
+        type: string
+      description:
+        type: string
+      identifier:
+        type: string
+      identifier-access:
+        type: string
+      identifier-ark:
+        type: string
+      language:
+        type: string
+      mediatype:
+        type: string
+      ocr:
+        type: string
+      ppi:
+        type: string
+      publicdate:
+        type: string
+      repub_state:
+        type: string
+      scanner:
+        type: string
+      subject: {}
+      title:
+        type: string
+      uploader:
+        type: string
+    type: object
+  models.InternetArchiveMetadataResponse:
+    properties:
+      files:
+        items:
+          $ref: '#/definitions/models.InternetArchiveFile'
+        type: array
+      metadata:
+        $ref: '#/definitions/models.InternetArchiveMetadata'
+    type: object
+  models.InternetArchiveSearchResponse:
+    properties:
+      response:
+        $ref: '#/definitions/models.InternetArchiveBookResponse'
+    type: object
   models.User:
     properties:
       email:
@@ -459,6 +540,113 @@ paths:
       summary: Get user diary entries
       tags:
       - diary
+  /internetArchive/books/{bookId}/download:
+    get:
+      description: Downloads Internet Archive book with given identifier
+      parameters:
+      - description: IA book ID
+        in: path
+        name: bookId
+        required: true
+        type: string
+      - description: The file name
+        in: query
+        name: file
+        required: true
+        type: string
+      produces:
+      - application/epub+zip
+      responses:
+        "200":
+          description: Returns book's EPUB file
+          schema:
+            type: file
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.HttpError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpError'
+      security:
+      - BearerAuth: []
+      summary: Downloads given book
+      tags:
+      - internet archive
+  /internetArchive/books/{bookId}/metadata:
+    get:
+      description: Gets given Internet Archive book's metadata
+      parameters:
+      - description: IA book ID
+        in: path
+        name: bookId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.InternetArchiveMetadataResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.HttpError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpError'
+      security:
+      - BearerAuth: []
+      summary: Get IA book metadata
+      tags:
+      - internet archive
+  /internetArchive/books/search:
+    get:
+      description: Gets all Internet Archive books that match given params
+      parameters:
+      - description: The collection
+        in: query
+        name: collection
+        required: true
+        type: string
+      - description: The language
+        in: query
+        name: language
+        required: true
+        type: string
+      - description: The subject
+        in: query
+        name: subject
+        required: true
+        type: string
+      - description: Row limit
+        in: query
+        name: rows
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.InternetArchiveSearchResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/models.HttpError'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/models.HttpError'
+      security:
+      - BearerAuth: []
+      summary: Gets all Internet Archive books that match given params
+      tags:
+      - internet archive
   /users/{email}:
     get:
       consumes:

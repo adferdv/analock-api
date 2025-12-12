@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/adfer-dev/analock-api/models"
 	"github.com/go-playground/validator/v10"
 )
 
@@ -27,6 +28,18 @@ func ReadJSON(reader io.Reader, body interface{}) error {
 	}
 
 	return nil
+}
+
+// Wrapper that writes an error as an HTTP response with given info.
+func WriteError(res http.ResponseWriter, status int, description string) error {
+	return WriteJSON(
+		res,
+		status,
+		&models.HttpError{
+			Status:      status,
+			Description: description,
+		},
+	)
 }
 
 func validateBody(body interface{}) error {

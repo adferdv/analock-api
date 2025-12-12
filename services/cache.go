@@ -16,7 +16,7 @@ var cacheServiceInstance *cacheServiceImpl
 
 type CacheService interface {
 	CacheResource(f func() (interface{}, error), resource string, key string) (interface{}, error)
-	EvictResourceItem(f CacheFunc, resource string, key string) (interface{}, error)
+	EvictResourceItem(f CacheFunc, resource string, key string) (any, error)
 	EvictUserResource(resource string, userId int) error
 }
 
@@ -122,7 +122,7 @@ func (cache *cache) put(key string, value interface{}) {
 
 // Gets the value of the entry with the given key.
 // Returns error if no entry with that key was found.
-func (cache *cache) get(key string) (*interface{}, error) {
+func (cache *cache) get(key string) (interface{}, error) {
 	cache.mutex.Lock()
 	defer cache.mutex.Unlock()
 
@@ -132,7 +132,7 @@ func (cache *cache) get(key string) (*interface{}, error) {
 		return nil, errors.New("cache entry is not present")
 	}
 
-	return &result.entry, nil
+	return result.entry, nil
 }
 
 // Deletes the entry that matches the given key from the cache.
