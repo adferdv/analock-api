@@ -47,7 +47,7 @@ func PerformRequest[T any](method string, url string, body interface{}) (*T, err
 		}
 
 		// if response status is 4xx or 5xx, return error so it is retried
-		if response.StatusCode >= 200 {
+		if response.StatusCode >= 400 {
 			utils.GetCustomLogger().Errorf(
 				"Error on HTTP request: [%s]%s - STATUS: %d\n",
 				method,
