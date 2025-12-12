@@ -498,6 +498,172 @@
                 }
             }
         },
+        "/internetArchive/books/search": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets all Internet Archive books that match given params",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internet archive"
+                ],
+                "summary": "Gets all Internet Archive books that match given params",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "The collection",
+                        "name": "collection",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "The language",
+                        "name": "language",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "The subject",
+                        "name": "subject",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Row limit",
+                        "name": "rows",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternetArchiveSearchResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.HttpError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.HttpError"
+                        }
+                    }
+                }
+            }
+        },
+        "/internetArchive/books/{bookId}/download": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Downloads Internet Archive book with given identifier",
+                "produces": [
+                    "application/epub+zip"
+                ],
+                "tags": [
+                    "internet archive"
+                ],
+                "summary": "Downloads given book",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "IA book ID",
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "The file name",
+                        "name": "file",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Returns book's EPUB file",
+                        "schema": {
+                            "type": "file"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.HttpError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.HttpError"
+                        }
+                    }
+                }
+            }
+        },
+        "/internetArchive/books/{bookId}/metadata": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Gets given Internet Archive book's metadata",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "internet archive"
+                ],
+                "summary": "Get IA book metadata",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "IA book ID",
+                        "name": "bookId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/models.InternetArchiveMetadataResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/models.HttpError"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/models.HttpError"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{email}": {
             "get": {
                 "security": [
@@ -653,6 +819,130 @@
                 },
                 "status": {
                     "type": "integer"
+                }
+            }
+        },
+        "models.InternetArchiveBook": {
+            "type": "object",
+            "properties": {
+                "creator": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "type": "string"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.InternetArchiveBookResponse": {
+            "type": "object",
+            "properties": {
+                "docs": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.InternetArchiveBook"
+                    }
+                },
+                "numFound": {
+                    "type": "integer"
+                },
+                "start": {
+                    "type": "integer"
+                }
+            }
+        },
+        "models.InternetArchiveFile": {
+            "type": "object",
+            "properties": {
+                "format": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.InternetArchiveMetadata": {
+            "type": "object",
+            "properties": {
+                "addeddate": {
+                    "type": "string"
+                },
+                "backup_location": {
+                    "type": "string"
+                },
+                "collection": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "curation": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "identifier": {
+                    "type": "string"
+                },
+                "identifier-access": {
+                    "type": "string"
+                },
+                "identifier-ark": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "mediatype": {
+                    "type": "string"
+                },
+                "ocr": {
+                    "type": "string"
+                },
+                "ppi": {
+                    "type": "string"
+                },
+                "publicdate": {
+                    "type": "string"
+                },
+                "repub_state": {
+                    "type": "string"
+                },
+                "scanner": {
+                    "type": "string"
+                },
+                "subject": {},
+                "title": {
+                    "type": "string"
+                },
+                "uploader": {
+                    "type": "string"
+                }
+            }
+        },
+        "models.InternetArchiveMetadataResponse": {
+            "type": "object",
+            "properties": {
+                "files": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/models.InternetArchiveFile"
+                    }
+                },
+                "metadata": {
+                    "$ref": "#/definitions/models.InternetArchiveMetadata"
+                }
+            }
+        },
+        "models.InternetArchiveSearchResponse": {
+            "type": "object",
+            "properties": {
+                "response": {
+                    "$ref": "#/definitions/models.InternetArchiveBookResponse"
                 }
             }
         },
